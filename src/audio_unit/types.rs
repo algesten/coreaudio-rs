@@ -164,6 +164,8 @@ impl From<IOType> for Type {
 /// Effect (digital signal processing) audio unit subtypes for audio units provided by Apple.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum EffectType {
+    /// No subtype.
+    None = 0,
     /// An audio unit that enforces an upper dynamic limit on an audio signal.
     ///
     /// **Available** in OS X v10.2 and later.
@@ -255,6 +257,8 @@ pub enum EffectType {
 /// Audio data format converter audio unit subtypes for **AudioUnit**s provided by Apple.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum FormatConverterType {
+    /// No subtype.
+    None = 0,
     /// An audio unit that uses an audio converter to do linear PCM conversions, such as changes to
     /// sample rate, bit depth, or interleaving.
     ///
@@ -310,6 +314,8 @@ pub enum FormatConverterType {
 /// Audio mixing **AudioUnit** subtypes for **AudioUnit**s provided by Apple.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MixerType {
+    /// No subtype.
+    None = 0,
     /// An audio unit that can have any number of input buses, with any number of channels on each
     /// input bus, and one output bus.
     ///
@@ -358,6 +364,8 @@ pub enum MixerType {
 /// Audio units that serve as sound sources.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum GeneratorType {
+    /// No subtype.
+    None = 0,
     /// A generator unit that can be used to schedule slices of audio to be played at specified
     /// times.
     ///
@@ -376,6 +384,8 @@ pub enum GeneratorType {
 /// Audio units that can be played as musical instruments via MIDI control.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MusicDeviceType {
+    /// No subtype.
+    None = 0,
     /// A multitimbral instrument unit that can use sample banks in either DLS or SoundFont
     /// formats.
     ///
@@ -393,6 +403,8 @@ pub enum MusicDeviceType {
 /// Input/output **AudioUnit** subtypes for **AudioUnit**s provided by Apple.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum IOType {
+    /// No subtype.
+    None = 0,
     /// An audio unit that responds to start/stop calls and provides basic services for converting
     /// to and from linear PCM formats.
     ///
