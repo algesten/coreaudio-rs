@@ -18,7 +18,7 @@ macro_rules! try_os_status {
 }
 
 #[derive(Clone)]
-pub struct AudioUnitDescription {
+pub struct AudioUnitInfo {
     pub name: String,
     pub version: AudioUnitVersion,
     pub description: sys::AudioComponentDescription,
@@ -32,7 +32,7 @@ pub struct AudioUnitVersion {
     pub stage: u8,
 }
 
-pub fn list_units(ty: Type) -> Result<Vec<AudioUnitDescription>, Error> {
+pub fn list_units(ty: Type) -> Result<Vec<AudioUnitInfo>, Error> {
     let au_type = ty.as_u32();
     let sub_type = match ty.as_subtype_u32() {
         Some(u) => u,
@@ -79,7 +79,7 @@ pub fn list_units(ty: Type) -> Result<Vec<AudioUnitDescription>, Error> {
             let mut description = sys::AudioComponentDescription::default();
             try_os_status!(AudioComponentGetDescription(component, &mut description));
 
-            ret.push(AudioUnitDescription {
+            ret.push(AudioUnitInfo {
                 name,
                 version,
                 description,
@@ -100,9 +100,9 @@ unsafe fn cfstring_ref_to_string(r: CFStringRef) -> String {
     c_str.to_str().unwrap().to_owned()
 }
 
-impl fmt::Debug for AudioUnitDescription {
+impl fmt::Debug for AudioUnitInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("AudioUnitDescription")
+        f.debug_struct("AudioUnitInfo")
             .field("name", &self.name)
             .field("version", &self.version)
             .finish()

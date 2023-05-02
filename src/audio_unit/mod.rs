@@ -26,7 +26,7 @@ use std::ptr;
 use sys;
 
 pub use self::audio_format::AudioFormat;
-use self::list::AudioUnitDescription;
+use self::list::AudioUnitInfo;
 pub use self::sample_format::{Sample, SampleFormat};
 pub use self::stream_format::StreamFormat;
 pub use self::types::{
@@ -143,8 +143,8 @@ impl AudioUnit {
 
     /// The same as [**AudioUnit::new**](./struct.AudioUnit#method.new) but using the given
     /// [`AudioUnitDescription`].
-    pub fn new_with_description(description: AudioUnitDescription) -> Result<AudioUnit, Error> {
-        Self::new_from_component_description(description.description)
+    pub fn new_with_description(info: &AudioUnitInfo) -> Result<AudioUnit, Error> {
+        Self::new_from_component_description(info.description)
     }
 
     fn new_from_component_description(
