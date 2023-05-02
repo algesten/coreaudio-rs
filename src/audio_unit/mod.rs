@@ -26,6 +26,7 @@ use std::ptr;
 use sys;
 
 pub use self::audio_format::AudioFormat;
+use self::list_units::AudioUnitDescription;
 pub use self::sample_format::{Sample, SampleFormat};
 pub use self::stream_format::StreamFormat;
 pub use self::types::{
@@ -36,6 +37,7 @@ pub use self::types::{
 pub mod macos_helpers;
 
 pub mod audio_format;
+pub mod list_units;
 pub mod render_callback;
 pub mod sample_format;
 pub mod stream_format;
@@ -123,8 +125,8 @@ impl AudioUnit {
         const MANUFACTURER_IDENTIFIER: u32 = sys::kAudioUnitManufacturer_Apple;
         let au_type: Type = ty.into();
         let sub_type_u32 = match au_type.as_subtype_u32() {
-            Some(u) => u,
-            None => return Err(Error::NoKnownSubtype),
+            Some(u) if u > 0 => u,
+            _ => return Err(Error::NoKnownSubtype),
         };
 
         // A description of the audio unit we desire.
@@ -136,6 +138,18 @@ impl AudioUnit {
             componentFlagsMask: mask,
         };
 
+        Self::new_from_component_description(desc)
+    }
+
+    /// The same as [**AudioUnit::new**](./struct.AudioUnit#method.new) but using the given
+    /// [`AudioUnitDescription`].
+    pub fn new_with_description(description: AudioUnitDescription) -> Result<AudioUnit, Error> {
+        Self::new_from_component_description(description.description)
+    }
+
+    fn new_from_component_description(
+        desc: sys::AudioComponentDescription,
+    ) -> Result<AudioUnit, Error> {
         unsafe {
             // Find the default audio unit for the description.
             //
