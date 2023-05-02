@@ -26,7 +26,7 @@ use std::ptr;
 use sys;
 
 pub use self::audio_format::AudioFormat;
-use self::list_units::AudioUnitDescription;
+use self::list::AudioUnitDescription;
 pub use self::sample_format::{Sample, SampleFormat};
 pub use self::stream_format::StreamFormat;
 pub use self::types::{
@@ -37,7 +37,7 @@ pub use self::types::{
 pub mod macos_helpers;
 
 pub mod audio_format;
-pub mod list_units;
+pub mod list;
 pub mod render_callback;
 pub mod sample_format;
 pub mod stream_format;
