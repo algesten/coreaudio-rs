@@ -32,7 +32,7 @@ pub struct AudioUnitVersion {
     pub stage: u8,
 }
 
-pub fn list_units(ty: Type) -> Result<Vec<AudioUnitInfo>, Error> {
+pub fn list_unit_info(ty: Type) -> Result<Vec<AudioUnitInfo>, Error> {
     let au_type = ty.as_u32();
     let sub_type = match ty.as_subtype_u32() {
         Some(u) => u,
@@ -127,7 +127,7 @@ mod test {
 
     #[test]
     fn list_units_test() {
-        let units = list_units(Type::Effect(EffectType::None)).unwrap();
+        let units = list_unit_info(Type::Effect(EffectType::None)).unwrap();
 
         println!("{:?}", units);
     }
