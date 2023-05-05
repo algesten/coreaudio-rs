@@ -132,3 +132,66 @@ mod test {
         println!("{:?}", units);
     }
 }
+
+// use coreaudio::audio_unit::{AudioUnit, Element, Scope};
+// use coreaudio::sys::{
+//     AudioFormatFlags, AudioStreamBasicDescription, AudioUnitGetProperty, AudioUnitGetPropertyInfo,
+// };
+// use std::mem;
+
+// fn main() {
+//     // Create an audio unit instance
+//     let audio_unit = AudioUnit::new("aufx", "dely", "").unwrap();
+
+//     // Get the input scope and element
+//     let input_scope = Scope::Input;
+//     let element = Element::from_scope(input_scope, 0).unwrap();
+
+//     // Get the property ID for the supported formats
+//     let property_id = kAudioUnitProperty_StreamFormat;
+
+//     // Get the size of the property value
+//     let mut data_size = 0;
+//     let mut is_writable = 0;
+//     unsafe {
+//         AudioUnitGetPropertyInfo(
+//             audio_unit.as_sys(),
+//             property_id,
+//             input_scope as u32,
+//             element.to_u32(),
+//             &mut data_size,
+//             &mut is_writable,
+//         )
+//         .unwrap();
+//     }
+
+//     // Allocate memory for the property value
+//     let mut supported_formats = Vec::<AudioStreamBasicDescription>::with_capacity(
+//         data_size as usize / mem::size_of::<AudioStreamBasicDescription>(),
+//     );
+
+//     // Get the supported formats
+//     unsafe {
+//         AudioUnitGetProperty(
+//             audio_unit.as_sys(),
+//             property_id,
+//             input_scope as u32,
+//             element.to_u32(),
+//             supported_formats.as_mut_ptr() as *mut _,
+//             &mut data_size,
+//         )
+//         .unwrap();
+//         supported_formats.set_len(data_size as usize / mem::size_of::<AudioStreamBasicDescription>());
+//     }
+
+//     // Loop through the supported formats and print information about each one
+//     for (i, format) in supported_formats.iter().enumerate() {
+//         println!(
+//             "Supported format {}: {} channels, {} bits per channel, {} sample rate",
+//             i + 1,
+//             format.mChannelsPerFrame,
+//             format.mBitsPerChannel,
+//             format.mSampleRate
+//         );
+//     }
+// }

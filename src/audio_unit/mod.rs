@@ -73,6 +73,8 @@ pub enum Element {
 /// Find the original Audio Unit Programming Guide [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html).
 pub struct AudioUnit {
     instance: sys::AudioUnit,
+    initialized: bool,
+    started: bool,
     maybe_render_callback: Option<*mut render_callback::InputProcFnWrapper>,
     maybe_input_callback: Option<InputCallback>,
 }
@@ -87,6 +89,12 @@ macro_rules! try_os_status {
     ($expr:expr) => {
         Error::from_os_status($expr)?
     };
+}
+
+#[derive(Debug, Clone)]
+pub struct Formats {
+    pub input: Vec<(f64, SampleFormat)>,
+    pub output: Vec<(f64, SampleFormat)>,
 }
 
 impl AudioUnit {
@@ -172,10 +180,10 @@ impl AudioUnit {
             ));
             let instance: sys::AudioUnit = instance_uninit.assume_init();
 
-            // Initialise the audio unit!
-            try_os_status!(sys::AudioUnitInitialize(instance));
             Ok(AudioUnit {
                 instance,
+                initialized: false,
+                started: false,
                 maybe_render_callback: None,
                 maybe_input_callback: None,
             })
@@ -190,9 +198,13 @@ impl AudioUnit {
     /// Usually, the state of an audio unit (such as its I/O formats and memory allocations)
     /// cannot be changed while an audio unit is initialized.
     pub fn initialize(&mut self) -> Result<(), Error> {
+        if self.initialized {
+            return Ok(());
+        }
         unsafe {
             try_os_status!(sys::AudioUnitInitialize(self.instance));
         }
+        self.initialized = true;
         Ok(())
     }
 
@@ -203,9 +215,16 @@ impl AudioUnit {
     /// After calling this function, you can reconfigure the audio unit and then call
     /// AudioUnitInitialize to reinitialize it.
     pub fn uninitialize(&mut self) -> Result<(), Error> {
+        if !self.initialized {
+            return Ok(());
+        }
+        if self.started {
+            self.stop()?;
+        }
         unsafe {
             try_os_status!(sys::AudioUnitUninitialize(self.instance));
         }
+        self.initialized = false;
         Ok(())
     }
 
@@ -250,14 +269,72 @@ impl AudioUnit {
         get_property(self.instance, id, scope, elem)
     }
 
+    /// List all possible sample rates and sample formats.
+    ///
+    /// Must be called before `initialize`.
+    pub fn get_formats(&mut self) -> Result<Formats, Error> {
+        if self.initialized {
+            return Err(Error::AlreadyInitialized);
+        }
+
+        const RATES: &[f64] = &[44_100.0, 48_000.0, 88_200.0, 96_000.0, 192_000.0];
+        const FORMATS: &[SampleFormat] = &[
+            SampleFormat::F32,
+            SampleFormat::I32,
+            SampleFormat::I24,
+            SampleFormat::I16,
+            SampleFormat::I8,
+        ];
+
+        let base_input = self.output_stream_format()?;
+        let base_output = self.input_stream_format()?;
+
+        let mut ok_inputs = vec![];
+        let mut ok_outputs = vec![];
+
+        for format in FORMATS {
+            for rate in RATES {
+                let absd_in = StreamFormat {
+                    sample_rate: *rate,
+                    sample_format: *format,
+                    ..base_input
+                };
+                let absd_out = StreamFormat {
+                    sample_rate: *rate,
+                    sample_format: *format,
+                    ..base_output
+                };
+
+                if self.set_stream_format(absd_in, Scope::Input).is_ok() {
+                    ok_inputs.push((*rate, *format));
+                }
+                if self.set_stream_format(absd_out, Scope::Output).is_ok() {
+                    ok_outputs.push((*rate, *format));
+                }
+            }
+        }
+
+        Ok(Formats {
+            input: ok_inputs,
+            output: ok_outputs,
+        })
+    }
+
     /// Starts an I/O **AudioUnit**, which in turn starts the audio unit processing graph that it is
     /// connected to.
     ///
     /// **Available** in OS X v10.0 and later.
     pub fn start(&mut self) -> Result<(), Error> {
+        if !self.initialized {
+            return Err(Error::NotInitialized);
+        }
+        if self.started {
+            return Ok(());
+        }
         unsafe {
             try_os_status!(sys::AudioOutputUnitStart(self.instance));
         }
+        self.started = true;
         Ok(())
     }
 
@@ -266,9 +343,13 @@ impl AudioUnit {
     ///
     /// **Available** in OS X v10.0 and later.
     pub fn stop(&mut self) -> Result<(), Error> {
+        if !self.started {
+            return Ok(());
+        }
         unsafe {
             try_os_status!(sys::AudioOutputUnitStop(self.instance));
         }
+        self.started = false;
         Ok(())
     }
 
@@ -444,3 +525,23 @@ pub fn audio_session_get_property<T>(id: u32) -> Result<T, Error> {
         Ok(data)
     }
 }
+
+// #[cfg(test)]
+// mod test {
+//     use crate::audio_unit::list::list_units;
+
+//     use super::*;
+
+//     #[test]
+//     fn test_list_formats() {
+//         let units = list_units(Type::Effect(EffectType::None)).unwrap();
+
+//         for desc in units {
+//             let mut unit = AudioUnit::new_with_description(&desc).unwrap();
+//             let formats = unit.get_formats().unwrap();
+
+//             println!("{:?}", desc);
+//             println!("{:?}", formats);
+//         }
+//     }
+// }

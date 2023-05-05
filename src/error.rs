@@ -252,6 +252,8 @@ pub enum Error {
     AudioFormat(AudioFormatError),
     AudioUnit(AudioUnitError),
     Unknown(OSStatus),
+    AlreadyInitialized,
+    NotInitialized,
 }
 
 impl Error {
@@ -319,6 +321,8 @@ impl ::std::fmt::Display for Error {
             Error::AudioFormat(ref err) => write!(f, "{}", err),
             Error::AudioUnit(ref err) => write!(f, "{}", err),
             Error::Unknown(_) => write!(f, "An unknown error unknown to the coreaudio-rs API occurred"),
+            Error::AlreadyInitialized => write!(f, "Operation must be done before unit is initialized"),
+            Error::NotInitialized => write!(f, "Unit must be initialized before started"),
         }
     }
 }
