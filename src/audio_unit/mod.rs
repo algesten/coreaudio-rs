@@ -151,7 +151,7 @@ impl AudioUnit {
 
     /// The same as [**AudioUnit::new**](./struct.AudioUnit#method.new) but using the given
     /// [`AudioUnitDescription`].
-    pub fn new_with_description(info: &AudioUnitInfo) -> Result<AudioUnit, Error> {
+    pub fn new_from_info(info: &AudioUnitInfo) -> Result<AudioUnit, Error> {
         Self::new_from_component_description(info.description)
     }
 
@@ -325,11 +325,11 @@ impl AudioUnit {
     ///
     /// **Available** in OS X v10.0 and later.
     pub fn start(&mut self) -> Result<(), Error> {
-        if !self.initialized {
-            return Err(Error::NotInitialized);
-        }
         if self.started {
             return Ok(());
+        }
+        if !self.initialized {
+            self.initialize()?;
         }
         unsafe {
             try_os_status!(sys::AudioOutputUnitStart(self.instance));
@@ -414,19 +414,17 @@ unsafe impl Send for AudioUnit {}
 impl Drop for AudioUnit {
     fn drop(&mut self) {
         unsafe {
-            use crate::error;
-
             // We don't want to panic in `drop`, so we'll ignore returned errors.
             //
             // A user should explicitly terminate the `AudioUnit` if they want to handle errors (we
             // still need to provide a way to actually do that).
             self.stop().ok();
-            error::Error::from_os_status(sys::AudioUnitUninitialize(self.instance)).ok();
+            self.uninitialize().ok();
 
             self.free_render_callback();
             self.free_input_callback();
 
-            error::Error::from_os_status(sys::AudioComponentInstanceDispose(self.instance)).ok();
+            sys::AudioComponentInstanceDispose(self.instance);
         }
     }
 }
@@ -526,22 +524,27 @@ pub fn audio_session_get_property<T>(id: u32) -> Result<T, Error> {
     }
 }
 
-// #[cfg(test)]
-// mod test {
-//     use crate::audio_unit::list::list_units;
+#[cfg(test)]
+mod test {
+    use super::list::list_unit_info;
+    use super::*;
 
-//     use super::*;
+    #[test]
+    fn test_list_formats() {
+        let infos = list_unit_info(Type::Effect(EffectType::None)).unwrap();
 
-//     #[test]
-//     fn test_list_formats() {
-//         let units = list_units(Type::Effect(EffectType::None)).unwrap();
+        for info in infos {
+            let mut unit = AudioUnit::new_from_info(&info).unwrap();
+            let formats = unit.get_formats().unwrap();
 
-//         for desc in units {
-//             let mut unit = AudioUnit::new_with_description(&desc).unwrap();
-//             let formats = unit.get_formats().unwrap();
+            unit.initialize().unwrap();
+            unit.start();
+            unit.uninitialize().unwrap();
+            unit.start();
+            unit.uninitialize().unwrap();
 
-//             println!("{:?}", desc);
-//             println!("{:?}", formats);
-//         }
-//     }
-// }
+            println!("{:?}", info);
+            println!("{:?}", formats);
+        }
+    }
+}
