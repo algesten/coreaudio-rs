@@ -19,16 +19,14 @@
 //! fixes!
 
 use crate::error::Error;
+use crate::{SampleFormat, StreamFormat};
 use std::mem;
 use std::os::raw::{c_uint, c_void};
 use std::ptr;
 
 use sys;
 
-pub use self::audio_format::AudioFormat;
 use self::list::AudioUnitInfo;
-pub use self::sample_format::{Sample, SampleFormat};
-pub use self::stream_format::StreamFormat;
 pub use self::types::{
     EffectType, FormatConverterType, GeneratorType, IOType, MixerType, MusicDeviceType, Type,
 };
@@ -36,11 +34,8 @@ pub use self::types::{
 #[cfg(target_os = "macos")]
 pub mod macos_helpers;
 
-pub mod audio_format;
 pub mod list;
 pub mod render_callback;
-pub mod sample_format;
-pub mod stream_format;
 pub mod types;
 
 /// The input and output **Scope**s.
@@ -538,9 +533,9 @@ mod test {
             let formats = unit.get_formats().unwrap();
 
             unit.initialize().unwrap();
-            unit.start();
+            let _ = unit.start();
             unit.uninitialize().unwrap();
-            unit.start();
+            let _ = unit.start();
             unit.uninitialize().unwrap();
 
             println!("{:?}", info);

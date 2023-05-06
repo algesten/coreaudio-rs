@@ -18,3 +18,11 @@ pub use error::Error;
 #[cfg(feature = "audio_unit")]
 pub mod audio_unit;
 pub mod error;
+
+mod audio_format;
+mod sample_format;
+mod stream_format;
+
+pub use audio_format::*;
+pub use sample_format::*;
+pub use stream_format::*;

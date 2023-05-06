@@ -3,7 +3,8 @@
 extern crate coreaudio;
 
 use coreaudio::audio_unit::render_callback::{self, data};
-use coreaudio::audio_unit::{AudioUnit, IOType, SampleFormat};
+use coreaudio::audio_unit::{AudioUnit, IOType};
+use coreaudio::SampleFormat;
 use std::f64::consts::PI;
 
 struct SineWaveGenerator {

@@ -1,6 +1,6 @@
-use super::audio_format::LinearPcmFlags;
 use super::{AudioUnit, Element, Scope};
 use crate::error::{self, Error};
+use crate::LinearPcmFlags;
 use std::mem;
 use std::os::raw::c_void;
 use std::slice;
@@ -49,9 +49,9 @@ pub struct Args<D> {
 
 /// Format specific render callback data.
 pub mod data {
-    use super::super::Sample;
+    use crate::{LinearPcmFlags, Sample};
+
     use super::super::StreamFormat;
-    use crate::audio_unit::audio_format::LinearPcmFlags;
     use std::marker::PhantomData;
     use std::slice;
     use sys;

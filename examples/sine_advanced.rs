@@ -3,15 +3,15 @@
 
 extern crate coreaudio;
 
-use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::macos_helpers::{
     audio_unit_from_device_id, find_matching_physical_format, get_default_device_id,
     get_hogging_pid, get_supported_physical_stream_formats, set_device_physical_stream_format,
     toggle_hog_mode, AliveListener, RateListener,
 };
 use coreaudio::audio_unit::render_callback::{self, data};
-use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
+use coreaudio::audio_unit::{Element, Scope};
 use coreaudio::sys::kAudioUnitProperty_StreamFormat;
+use coreaudio::{LinearPcmFlags, SampleFormat, StreamFormat};
 use std::f64::consts::PI;
 use std::process;
 

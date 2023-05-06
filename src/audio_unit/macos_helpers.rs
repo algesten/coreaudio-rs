@@ -1,6 +1,7 @@
 /// This is a collection of helper functions for performing common tasks on macOS.
 /// These functions are only implemented for macOS, not iOS.
 use crate::error::Error;
+use crate::{AudioFormat, LinearPcmFlags, SampleFormat, StreamFormat};
 use std::collections::VecDeque;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
@@ -29,9 +30,6 @@ use sys::{
     AudioStreamBasicDescription, AudioStreamRangedDescription, AudioValueRange, OSStatus,
 };
 
-use crate::audio_unit::audio_format::{AudioFormat, LinearPcmFlags};
-use crate::audio_unit::sample_format::SampleFormat;
-use crate::audio_unit::stream_format::StreamFormat;
 use crate::audio_unit::{AudioUnit, Element, IOType, Scope};
 
 /// Helper function to get the device id of the default input or output device.
