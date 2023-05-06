@@ -14,12 +14,13 @@ homepage = "https://github.com/RustAudio/coreaudio-rs"
 name = "coreaudio"
 
 [features]
-default = ["audio_toolbox", "audio_unit", "core_audio", "open_al", "core_midi"]
+default = ["audio_toolbox", "audio_unit", "core_audio", "open_al", "core_midi", "audio_queue"]
 audio_toolbox = ["coreaudio-sys/audio_toolbox"]
 audio_unit = ["coreaudio-sys/audio_unit"]
 core_audio = ["coreaudio-sys/core_audio"]
 open_al = ["coreaudio-sys/open_al"]
 core_midi = ["coreaudio-sys/core_midi"]
+audio_queue = []
 
 [dependencies]
 bitflags = "1.0"

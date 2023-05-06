@@ -18,16 +18,17 @@
 //! If you can find documentation on these, please feel free to submit an issue or PR with the
 //! fixes!
 
-use crate::error::Error;
-use crate::{SampleFormat, StreamFormat};
 use std::mem;
 use std::os::raw::{c_uint, c_void};
 use std::ptr;
-
 use sys;
 
+use crate::error::Error;
+use crate::try_os_status;
+use crate::{SampleFormat, StreamFormat};
+
 use self::list::AudioUnitInfo;
-pub use self::types::{
+pub use types::{
     EffectType, FormatConverterType, GeneratorType, IOType, MixerType, MusicDeviceType, Type,
 };
 
@@ -78,12 +79,6 @@ struct InputCallback {
     // The audio buffer list to which input data is rendered.
     buffer_list: *mut sys::AudioBufferList,
     callback: *mut render_callback::InputProcFnWrapper,
-}
-
-macro_rules! try_os_status {
-    ($expr:expr) => {
-        Error::from_os_status($expr)?
-    };
 }
 
 #[derive(Debug, Clone)]

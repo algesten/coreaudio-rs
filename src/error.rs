@@ -253,6 +253,7 @@ pub enum Error {
     AudioUnit(AudioUnitError),
     Unknown(OSStatus),
     AlreadyInitialized,
+    SampleFormatDoesntMatchQueueType,
 }
 
 impl Error {
@@ -321,6 +322,7 @@ impl ::std::fmt::Display for Error {
             Error::AudioUnit(ref err) => write!(f, "{}", err),
             Error::Unknown(_) => write!(f, "An unknown error unknown to the coreaudio-rs API occurred"),
             Error::AlreadyInitialized => write!(f, "Operation must be done before unit is initialized"),
+            Error::SampleFormatDoesntMatchQueueType => write!(f, "The SampleFormat doesn't match generic type S of the queue"),
         }
     }
 }
