@@ -6,9 +6,10 @@ use std::ptr;
 use std::sync::mpsc;
 
 use coreaudio_sys::{
-    AudioQueueAllocateBuffer, AudioQueueBufferRef, AudioQueueDispose, AudioQueueEnqueueBuffer,
-    AudioQueueFreeBuffer, AudioQueueNewInput, AudioQueueNewOutput, AudioQueueRef, AudioQueueStart,
-    AudioQueueStop, AudioStreamPacketDescription, AudioTimeStamp,
+    kCFRunLoopCommonModes, AudioQueueAllocateBuffer, AudioQueueBufferRef, AudioQueueDispose,
+    AudioQueueEnqueueBuffer, AudioQueueFreeBuffer, AudioQueueNewInput, AudioQueueNewOutput,
+    AudioQueueRef, AudioQueueStart, AudioQueueStop, AudioStreamPacketDescription, AudioTimeStamp,
+    CFRunLoopGetCurrent,
 };
 
 use crate::{try_os_status, Error, Sample, StreamFormat};
@@ -70,8 +71,9 @@ impl<S: Sample> AudioQueueOutput<S> {
             tx: tx.clone(),
         };
 
-        for _ in 0..buffer_count {
-            let idx = instance.allocate(buffer_size)?;
+        for idx in 0..buffer_count {
+            let buffer = AudioQueueBuffer::new(instance.queue_ref, idx, buffer_size)?;
+            instance.buffers.push(buffer);
             tx.send(idx).expect("to enqueue index on creation");
         }
 
@@ -86,13 +88,6 @@ impl<S: Sample> AudioQueueOutput<S> {
     pub fn stop(&mut self) -> Result<(), Error> {
         unsafe { try_os_status!(AudioQueueStop(self.queue_ref, 1)) };
         Ok(())
-    }
-
-    fn allocate(&mut self, max_len: usize) -> Result<usize, Error> {
-        let idx = self.buffers.len();
-        let buffer = AudioQueueBuffer::new(self.queue_ref, idx, max_len)?;
-        self.buffers.push(buffer);
-        Ok(idx)
     }
 
     pub fn request_buffer(&mut self) -> BorrowedAudioQueueBuffer<'_, S> {
@@ -137,6 +132,12 @@ pub trait InputCallback<S> {
     fn audio_input(&mut self, start_time: AudioTimeStamp, buffer: &AudioQueueBuffer<S>);
 }
 
+impl<S, T: FnMut(AudioTimeStamp, &AudioQueueBuffer<S>)> InputCallback<S> for T {
+    fn audio_input(&mut self, start_time: AudioTimeStamp, buffer: &AudioQueueBuffer<S>) {
+        (self)(start_time, buffer)
+    }
+}
+
 type InputCallbackFn = dyn FnMut(AudioQueueRef, AudioQueueBufferRef, *const AudioTimeStamp);
 
 struct InputCallbackWrapper {
@@ -144,9 +145,9 @@ struct InputCallbackWrapper {
 }
 
 impl<S: Sample> AudioQueueInput<S> {
-    pub fn new<C: InputCallback<S> + 'static>(
+    pub fn new(
         format: &StreamFormat,
-        mut callback: C,
+        mut callback: impl InputCallback<S> + 'static,
     ) -> Result<Self, Error> {
         if S::sample_format() != format.sample_format {
             return Err(Error::SampleFormatDoesntMatchQueueType);
@@ -171,8 +172,8 @@ impl<S: Sample> AudioQueueInput<S> {
                 &format.to_asbd(),
                 Some(input_proc),
                 Box::into_raw(wrapper) as *mut c_void,
-                ptr::null_mut(),
-                ptr::null_mut(),
+                CFRunLoopGetCurrent(),
+                kCFRunLoopCommonModes,
                 0,
                 &mut queue_ref,
             ));
@@ -184,13 +185,13 @@ impl<S: Sample> AudioQueueInput<S> {
         })
     }
 
-    pub fn start(&self) -> Result<(), Error> {
+    pub fn start(&mut self) -> Result<(), Error> {
         unsafe { try_os_status!(AudioQueueStart(self.queue_ref, ptr::null_mut())) };
 
         Ok(())
     }
 
-    pub fn stop(&self) -> Result<(), Error> {
+    pub fn stop(&mut self) -> Result<(), Error> {
         unsafe { try_os_status!(AudioQueueStop(self.queue_ref, 1)) };
         Ok(())
     }
@@ -336,9 +337,33 @@ unsafe extern "C" fn input_proc(
 mod test {
     use std::f32::consts::PI;
 
+    use core_foundation_sys::runloop::CFRunLoopRun;
+
     use crate::{LinearPcmFlags, SampleFormat};
 
     use super::*;
+
+    #[test]
+    fn test_queue_input() {
+        let mut q = AudioQueueInput::<f32>::new(
+            &StreamFormat {
+                sample_rate: 44_100.0,
+                sample_format: SampleFormat::F32,
+                flags: LinearPcmFlags::IS_FLOAT,
+                channels: 2,
+            },
+            move |start_time: AudioTimeStamp, _buffer: &AudioQueueBuffer<f32>| {
+                println!("{:?}", start_time);
+            },
+        )
+        .unwrap();
+
+        q.start().unwrap();
+
+        unsafe { CFRunLoopRun() };
+
+        // std::thread::sleep(std::time::Duration::from_secs(10));
+    }
 
     #[test]
     fn test_queue_output() {
@@ -350,7 +375,7 @@ mod test {
                 channels: 1,
             },
             10,
-            256,
+            64,
         )
         .unwrap();
 
@@ -360,12 +385,12 @@ mod test {
         let sample_period = 1.0 / 48_000.0;
         let mut i = 0;
 
-        loop {
+        for _ in 0..300 {
             let mut buf = q.request_buffer();
             buf.resize(128);
 
             for sample in buf.iter_mut() {
-                *sample = (angular_frequency * i as f32 * sample_period).sin();
+                *sample = (angular_frequency * i as f32 * sample_period).sin() * 0.1;
                 i += 1;
             }
 
