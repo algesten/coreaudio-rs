@@ -19,6 +19,7 @@ pub struct AudioQueueOutput<S: Sample> {
     buffers: Vec<AudioQueueBuffer<S>>,
     next_buffer: mpsc::Receiver<usize>,
     tx: mpsc::Sender<usize>,
+    wrapper_ptr: *mut OutputCallbackWrapper,
 }
 
 type OutputCallbackFn = dyn FnMut(AudioQueueBufferRef);
@@ -52,11 +53,13 @@ impl<S: Sample> AudioQueueOutput<S> {
             callback: Box::new(output_proc_fn),
         });
 
+        let wrapper_ptr = Box::into_raw(wrapper);
+
         unsafe {
             try_os_status!(AudioQueueNewOutput(
                 &format.to_asbd(),
                 Some(output_proc),
-                Box::into_raw(wrapper) as *mut c_void,
+                wrapper_ptr as *mut c_void,
                 ptr::null_mut(),
                 ptr::null_mut(),
                 0,
@@ -69,6 +72,7 @@ impl<S: Sample> AudioQueueOutput<S> {
             buffers: Vec::with_capacity(buffer_count),
             next_buffer,
             tx: tx.clone(),
+            wrapper_ptr,
         };
 
         for idx in 0..buffer_count {
@@ -117,15 +121,21 @@ impl<S: Sample> Drop for AudioQueueOutput<S> {
     fn drop(&mut self) {
         let _ = self.stop();
 
+        // By dropping the owned buffers we are freeing them.
+        self.buffers.clear();
+
         unsafe {
             AudioQueueDispose(self.queue_ref, 1);
         }
+
+        let _ = unsafe { Box::from_raw(self.wrapper_ptr) };
     }
 }
 
 pub struct AudioQueueInput<S: Sample> {
     queue_ref: AudioQueueRef,
     _ph: PhantomData<S>,
+    wrapper_ptr: *mut InputCallbackWrapper,
 }
 
 pub trait InputCallback<S> {
@@ -167,11 +177,13 @@ impl<S: Sample> AudioQueueInput<S> {
             callback: Box::new(input_proc_fn),
         });
 
+        let wrapper_ptr = Box::into_raw(wrapper);
+
         unsafe {
             try_os_status!(AudioQueueNewInput(
                 &format.to_asbd(),
                 Some(input_proc),
-                Box::into_raw(wrapper) as *mut c_void,
+                wrapper_ptr as *mut c_void,
                 CFRunLoopGetCurrent(),
                 kCFRunLoopCommonModes,
                 0,
@@ -182,6 +194,7 @@ impl<S: Sample> AudioQueueInput<S> {
         Ok(Self {
             queue_ref,
             _ph: PhantomData,
+            wrapper_ptr,
         })
     }
 
@@ -194,6 +207,18 @@ impl<S: Sample> AudioQueueInput<S> {
     pub fn stop(&mut self) -> Result<(), Error> {
         unsafe { try_os_status!(AudioQueueStop(self.queue_ref, 1)) };
         Ok(())
+    }
+}
+
+impl<S: Sample> Drop for AudioQueueInput<S> {
+    fn drop(&mut self) {
+        let _ = self.stop();
+
+        unsafe {
+            AudioQueueDispose(self.queue_ref, 1);
+        }
+
+        let _ = unsafe { Box::from_raw(self.wrapper_ptr) };
     }
 }
 
