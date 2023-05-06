@@ -81,7 +81,7 @@ impl SampleFormat {
 }
 
 /// Audio data sample types.
-pub trait Sample {
+pub trait Sample: Default + Clone {
     /// Dynamic representation of audio data sample format.
     fn sample_format() -> SampleFormat;
 }

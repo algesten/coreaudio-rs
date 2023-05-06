@@ -32,6 +32,9 @@ pub use sample_format::*;
 mod stream_format;
 pub use stream_format::*;
 
+mod audio_buffer;
+pub use audio_buffer::AudioBufferList;
+
 macro_rules! try_os_status {
     ($expr:expr) => {
         Error::from_os_status($expr)?
